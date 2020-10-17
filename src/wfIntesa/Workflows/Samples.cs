@@ -11,10 +11,113 @@ namespace wfIntesa.Workflows
 {
     public class Samples
     {
-        public static void Test()
+        static WorkflowsManager manager = null;
+
+        static Samples()
+        {
+            Samples.manager = new WorkflowsManager();
+        }
+
+        public static void Test(string str)
         {
             Console.WriteLine("Test.....");
             int a = 0;
+        }
+
+        public static void Test(int str)
+        {
+            Console.WriteLine("Test.....");
+            int a = 0;
+        }
+
+        public static string sample_request1()
+        {
+            Variable<string> receive = new Variable<string>();
+            Sequence workflow = new Sequence()
+            {
+                Variables = { receive },
+                Activities = { 
+                    new Receive<string>()
+                    {
+                        OperationName = new InArgument<string>("test"),
+                        Request = new OutArgument<string>(receive)   
+                    },
+                    new WriteLine()
+                    {
+                        Text = "Ciao mondo"
+                    },
+                    new SendReplay<string>()
+                    {
+                        Response = new InArgument<string>(e => receive.Get(e))
+                    }
+                }
+            };
+
+            WorkflowsManager manager = new WorkflowsManager();
+
+            var wfi = manager.StartWorkflow(workflow);
+            var response = wfi.Execute<string, string>("request in input");
+            return response;
+        }
+
+        public static string sample_divide()
+        {
+            int dividend = 500;
+            int divisor = 36;
+
+            string ret = string.Empty;
+
+            Action<IDictionary<string, object>> printOutputs = delegate (IDictionary<string, object> outArgs)
+            {
+                if (outArgs != null)
+                {
+                    ret = $"{dividend} / {divisor} = {outArgs["Result"]} Remainder {outArgs["Remainder"]}";
+                }
+            };
+
+            Dictionary<string, object> arguments = new Dictionary<string, object>();
+            arguments.Add("Dividend", dividend);
+            arguments.Add("Divisor", divisor);
+
+            //IDictionary<string, object> outputs = null;
+            //outputs = WorkflowInvoker.Invoke(new Divide(), arguments);
+            //printOutputs(outputs);
+
+            Variable<int> res = new Variable<int>();
+            
+
+            AutoResetEvent syncEvent = new AutoResetEvent(false);
+
+            Divide divide = new Divide()
+            {
+                Variables = { res },
+                //Result = new OutArgument<int>(res),
+                Body = new Sequence()
+                {
+                    Activities = {
+                        //new InvokeMethod()
+                        //{
+                        //    MethodName = nameof(Samples.Test),
+                        //    TargetType = typeof(Samples),
+                        //    Parameters = { new InArgument<int>(env => res.Get(env)) }
+                        //}
+                    }
+                }
+            };
+
+            var wf = new WorkflowApplication(divide, arguments);
+            wf.Completed = e => { printOutputs(e.Outputs);  syncEvent.Set(); };
+            wf.Unloaded = e => { syncEvent.Set(); };
+            wf.Aborted = e => { syncEvent.Set(); };
+            wf.Idle = e => { syncEvent.Set(); };
+            wf.PersistableIdle = e => { return PersistableIdleAction.None;  };
+            wf.OnUnhandledException = e => { return UnhandledExceptionAction.Terminate; };
+
+            wf.Run(TimeSpan.FromMinutes(1));
+
+            syncEvent.WaitOne();
+
+            return ret;
         }
 
         public static void sample_hello()
@@ -51,10 +154,26 @@ namespace wfIntesa.Workflows
             Func<Activity> createWorkflow = delegate ()
             {
                 Variable<DateTime> StartTime = new Variable<DateTime>();
+                Variable<string> request = new Variable<string>("request", "default val");
+                
+                //Variable<string> request = new Variable<string>
+                //{
+                //    Default = "Hello World.",
+                //    Modifiers = VariableModifiers.Mapped,
+                //};
+
+                Scope<string> root = new Scope<string>()
+                {
+                    Variables = { request },
+                    //Request = new InOutArgument<string>(request)
+                };
+                
+                //root.Variables.Add(request);
+                //root.Result = new OutArgument<string>(request2);
 
                 Sequence workflow = new Sequence();
-                
                 workflow.Variables.Add(StartTime);
+                
 
                 workflow.Activities.Add(
                 new Assign<DateTime>
@@ -63,18 +182,18 @@ namespace wfIntesa.Workflows
                     To = StartTime
                 });
 
-                workflow.Activities.Add(
-                new WriteLine
-                {
-                    Text = "Before Bookmark"
-                });
+                //workflow.Activities.Add(
+                //new Assign<string>
+                //{
+                //    Value = "prova",
+                //    To = request2
+                //});
 
                 workflow.Activities.Add(
                     new WriteLine
                     {
                         Text = "Before Bookmark"
                     });
-
 
                 workflow.Activities.Add(new BookmarkActivity());
 
@@ -85,21 +204,77 @@ namespace wfIntesa.Workflows
                     });
 
                 workflow.Activities.Add(
-                    new InvokeMethod()
+                    new WriteLine
                     {
-                         MethodName = "Test",
-                         TargetType = typeof(Samples)
+                        Text = new InArgument<string>(env => request.Get(env)),
                     });
 
+                workflow.Activities.Add(
+                    new Assign<string>
+                    {
+                        Value = new InArgument<string>("test value"),
+                        //Value = new InArgument<string>(env => root.Request.Get(env)),
+                        //Value = root.Request.Get(null),
+                        To = request
+                    });
 
-                
-                    return workflow;
+                workflow.Activities.Add(
+                    new InvokeMethod()
+                    {
+                        MethodName = nameof(Samples.Test),
+                        TargetType = typeof(Samples),
+                        Parameters = { new InArgument<string>(env => request.Get(env)) }
+                        //Parameters = { new InArgument<string> { Expression = request } },
+                        //Parameters = { root.Request },
+                    });
+
+                root.Body = workflow;
+
+                //{
+                //    Variables = { request },
+                //    //Request = request,
+                //    Body = workflow,
+                //};
+
+                //root.RequestVariable = request;
+                //root.Variables.Add(request);
+
+                //root.To = request;
+                //root.Result = request;
+
+                //workflow.Activities.Add(
+                //new Assign<string>
+                //{
+                //    Value = new InArgument<string>(env => root.Request.Get(env)),
+                //    To = request
+                //});
+
+                //workflow.Activities.Add(
+                //new InvokeMethod()
+                //{
+                //    MethodName = nameof(Samples.Test),
+                //    TargetType = typeof(Samples),
+                //    //Parameters = { new InArgument<string> { Expression = request } },
+                //    //Parameters = { root.Request },
+                //});
+
+                //Argument a1 = Argument.Create(typeof(Variable<string>), ArgumentDirection.In);
+                //workflow.Activities.Add(
+                //    new WriteLine
+                //    {
+                //        Text = new InArgument<string> { Expression = request }
+                //    });
+
+
+
+                return root;
             };
 
             Action<WorkflowApplication> setWFEvents = delegate (WorkflowApplication wf)
             {
                 wf.Idle = delegate (WorkflowApplicationIdleEventArgs e)
                 {
+                    
                     Console.WriteLine("Workflow idled");
                     s_idleEvent.Set();
                 };
@@ -107,7 +282,7 @@ namespace wfIntesa.Workflows
                 wf.Completed = delegate (WorkflowApplicationCompletedEventArgs e)
                 {
                     Console.WriteLine("Workflow completed with state {0}.", e.CompletionState.ToString());
-
+                    
                     if (e.TerminationException != null)
                     {
                         Console.WriteLine("TerminationException = {0}; {1}", e.TerminationException.GetType().ToString(), e.TerminationException.Message);
@@ -120,6 +295,7 @@ namespace wfIntesa.Workflows
                     Console.WriteLine("Workflow unloaded");
                     s_unloadedEvent.Set();
                 };
+                
 
                 wf.PersistableIdle = delegate (WorkflowApplicationIdleEventArgs e)
                 {
@@ -146,8 +322,21 @@ namespace wfIntesa.Workflows
 
             Activity wf = createWorkflow();
 
+
             Guid workflowInstanceId = Guid.Empty;
-            WorkflowApplication wfApp = new WorkflowApplication(wf);
+            WorkflowApplication wfApp = null;
+
+            if (bookmarkId == Guid.Empty)
+            {
+                Dictionary<string, object> inputs = new Dictionary<string, object>();
+                inputs.Add("Request", "bookmark1 request input value");
+                wfApp = new WorkflowApplication(wf, inputs);
+            }
+            else
+            {
+                wfApp = new WorkflowApplication(wf);
+            }
+
             wfApp.InstanceStore = s_fileStore;
 
             setWFEvents(wfApp);
@@ -170,6 +359,75 @@ namespace wfIntesa.Workflows
             workflowInstanceId = wfApp.Id;
 
             return workflowInstanceId;
+        }
+
+        public static void sample_bookmark2()
+        {
+            WorkflowsManager manager = new WorkflowsManager();
+
+            //Variable<string> request = new Variable<string>("request", "default value");
+           
+            //Variable<string> var1 = new Variable<string>();
+
+            Scope<string> workflow = new Scope<string>()
+            {
+                //RequestVariable = request,
+                //Variables = { var1 },
+                //Body = new Assign<string>
+                //{
+                //    Value = "prova",
+                //    To = var1,
+                //    //new InArgument<string> { Expression = request }
+                //}
+            };
+
+            
+
+
+            var wfi = manager.StartWorkflow(workflow);
+            wfi.Execute<string, string>("request in input");
+
+        }
+
+        public static string sample_SendReplay1()
+        {
+            Func<Activity> getWorkflowDefinition = delegate ()
+            {
+                Variable<int> result = new Variable<int>("result");
+                Variable<int> remainder = new Variable<int>("remainder");
+                Variable<Tuple<int, int>> v_request = new Variable<Tuple<int, int>>("request");
+
+                Sequence workflow = new Sequence()
+                {
+                    Variables = { result, remainder, v_request },
+                    Activities = {
+                    new Receive<Tuple<int, int>>("Submit")
+                    {
+                        Request = new OutArgument<Tuple<int, int>>(v_request)
+                    },
+                    new Divide()
+                    {
+                        Dividend = new InArgument<int>(e => v_request.Get(e).Item1),
+                        Divisor  = new InArgument<int>(e => v_request.Get(e).Item2),
+                        Result = new OutArgument<int>(result),
+                    },
+                    new SendReplay<int>()
+                    {
+                        Response = new InArgument<int>(e => result.Get(e))
+                    }
+                }
+                };
+
+                return workflow;
+            };
+
+            Tuple<int, int> request = new Tuple<int, int>(500, 13);
+
+
+            var workflowDefinition = getWorkflowDefinition();
+            var wfi = manager.StartWorkflow<Tuple<int, int>, int>(workflowDefinition, request, "Submit");
+            //var response = wfi.Execute<int, int>();
+            return "";
         }
     }
 }

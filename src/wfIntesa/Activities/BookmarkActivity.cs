@@ -21,6 +21,7 @@ namespace wfIntesa.Activities
             Guid wfInstanceId = context.WorkflowInstanceId;
             string bookmarkName = wfInstanceId.ToString();
 
+            
             Console.WriteLine("BookmarkActivity.Execute - creating bookmark with name {0}", bookmarkName);
             context.CreateBookmark(bookmarkName, new BookmarkCallback(BookmarkCallback), BookmarkOptions.MultipleResume);
             Console.WriteLine("BookmarkActivity.Execute - successfull created bookmark with name {0}", bookmarkName);
