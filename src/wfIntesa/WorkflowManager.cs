@@ -320,8 +320,16 @@ namespace wfIntesa
                     wfApp = createWorkflowApplication(instanceContext);
                     resetEvents();
                     wfApp.Load(wfId, timeOut);
-                    wfApp.ResumeBookmark(OperationName, "bookmark data",timeOut);
-                    waitOne();
+                    var isWaiting = wfApp.GetBookmarks().FirstOrDefault(b => b.BookmarkName == OperationName);
+                    if (isWaiting != null)
+                    {
+                        wfApp.ResumeBookmark(OperationName, "bookmark data", timeOut);
+                        waitOne();
+                    }
+                    else
+                    {
+                        throw new Exception($"Bookmark {OperationName} missing on workflow with id {wfApp.Id}");
+                    }
                 }
             }; 
             

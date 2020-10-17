@@ -431,6 +431,10 @@ namespace wfIntesa.Workflows
                     new SendReplay<SendReplay1Response>()
                     {
                         Response = v_response
+                    },
+                    new Receive<SendReplay1Request>("Continue")
+                    {
+                        Request = new OutArgument<SendReplay1Request>(v_request)
                     }
                 }
                 };
@@ -438,14 +442,14 @@ namespace wfIntesa.Workflows
                 return workflow;
             };
 
+            var workflowDefinition = getWorkflowDefinition();
+
             SendReplay1Request request = new SendReplay1Request()
             {
                  Dividend = 500,
                  Divisor = 13,
             };
-
-
-            var workflowDefinition = getWorkflowDefinition();
+            
             var response = manager.StartWorkflow<SendReplay1Request, SendReplay1Response>(workflowDefinition, request, "Submit");
             
             return $"{request.Dividend} / {request.Divisor} = {response.Result} or ({response.Quotient} with {response.Remainder} of Remainder )";
