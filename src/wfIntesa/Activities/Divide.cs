@@ -21,9 +21,8 @@ namespace wfIntesa.Activities
         public InArgument<int> Divisor { get; set; }
 
         public OutArgument<int> Remainder { get; set; }
-        public OutArgument<int> Result { get; set; }
-
-        public Activity Body { get; set; }
+        public OutArgument<int> Quotient { get; set; }
+        public OutArgument<decimal> Result { get; set; }
 
         public Collection<Variable> Variables { get; set; }
 
@@ -47,14 +46,15 @@ namespace wfIntesa.Activities
 
         protected override void Execute(NativeActivityContext context)
         {
-            int quotient = Dividend.Get(context) / Divisor.Get(context);
-            int remainder = Dividend.Get(context) % Divisor.Get(context);
+            int dividend = Dividend.Get(context);
+            int divisor = Divisor.Get(context);
+            int quotient = dividend / divisor;
+            int remainder = dividend % divisor;
+            decimal result = (decimal)dividend / (decimal)divisor;
 
-            Result.Set(context, quotient);
+            Quotient.Set(context, quotient);
             Remainder.Set(context, remainder);
-
-            if (this.Body != null)
-                context.ScheduleActivity(this.Body, new CompletionCallback(OnBodyComplete));
+            Result.Set(context, result);
         }
 
 

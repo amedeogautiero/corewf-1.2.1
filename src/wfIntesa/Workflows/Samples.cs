@@ -92,17 +92,17 @@ namespace wfIntesa.Workflows
             {
                 Variables = { res },
                 //Result = new OutArgument<int>(res),
-                Body = new Sequence()
-                {
-                    Activities = {
-                        //new InvokeMethod()
-                        //{
-                        //    MethodName = nameof(Samples.Test),
-                        //    TargetType = typeof(Samples),
-                        //    Parameters = { new InArgument<int>(env => res.Get(env)) }
-                        //}
-                    }
-                }
+                //Body = new Sequence()
+                //{
+                //    Activities = {
+                //        //new InvokeMethod()
+                //        //{
+                //        //    MethodName = nameof(Samples.Test),
+                //        //    TargetType = typeof(Samples),
+                //        //    Parameters = { new InArgument<int>(env => res.Get(env)) }
+                //        //}
+                //    }
+                //}
             };
 
             var wf = new WorkflowApplication(divide, arguments);
@@ -393,27 +393,44 @@ namespace wfIntesa.Workflows
         {
             Func<Activity> getWorkflowDefinition = delegate ()
             {
-                Variable<int> result = new Variable<int>("result");
-                Variable<int> remainder = new Variable<int>("remainder");
-                Variable<Tuple<int, int>> v_request = new Variable<Tuple<int, int>>("request");
+                Variable<SendReplay1Request> v_request = new Variable<SendReplay1Request>();
+                Variable<SendReplay1Response> v_response = new Variable<SendReplay1Response>();
+                Variable<int> v_resultInt = new Variable<int>();
+                Variable<int> v_remainder = new Variable<int>();
+                Variable<decimal> v_result = new Variable<decimal>();
 
                 Sequence workflow = new Sequence()
                 {
-                    Variables = { result, remainder, v_request },
+                    Variables = { v_result, v_resultInt, v_remainder, v_request, v_response },
                     Activities = {
-                    new Receive<Tuple<int, int>>("Submit")
+                    new Receive<SendReplay1Request>("Submit")
                     {
-                        Request = new OutArgument<Tuple<int, int>>(v_request)
+                        Request = new OutArgument<SendReplay1Request>(v_request)
                     },
                     new Divide()
                     {
-                        Dividend = new InArgument<int>(e => v_request.Get(e).Item1),
-                        Divisor  = new InArgument<int>(e => v_request.Get(e).Item2),
-                        Result = new OutArgument<int>(result),
+                        //IN
+                        Dividend = new InArgument<int>(e => v_request.Get(e).Dividend),
+                        Divisor  = new InArgument<int>(e => v_request.Get(e).Divisor),
+                        
+                        //OUT
+                        Quotient = new OutArgument<int>(v_resultInt),
+                        Result = new OutArgument<decimal>(v_result),
+                        Remainder = new OutArgument<int>(v_remainder),
                     },
-                    new SendReplay<int>()
+                    new Assign<SendReplay1Response>()
                     {
-                        Response = new InArgument<int>(e => result.Get(e))
+                        To = v_response,
+                        Value =new InArgument<SendReplay1Response>(e => new SendReplay1Response()
+                        {
+                             Result = v_result.Get(e),
+                             Quotient = v_resultInt.Get(e),
+                             Remainder = v_remainder.Get(e),
+                        })
+                    },
+                    new SendReplay<SendReplay1Response>()
+                    {
+                        Response = v_response
                     }
                 }
                 };
@@ -421,13 +438,34 @@ namespace wfIntesa.Workflows
                 return workflow;
             };
 
-            Tuple<int, int> request = new Tuple<int, int>(500, 13);
+            SendReplay1Request request = new SendReplay1Request()
+            {
+                 Dividend = 500,
+                 Divisor = 13,
+            };
 
 
             var workflowDefinition = getWorkflowDefinition();
-            var wfi = manager.StartWorkflow<Tuple<int, int>, int>(workflowDefinition, request, "Submit");
-            //var response = wfi.Execute<int, int>();
-            return "";
+            var response = manager.StartWorkflow<SendReplay1Request, SendReplay1Response>(workflowDefinition, request, "Submit");
+            
+            return $"{request.Dividend} / {request.Divisor} = {response.Result} or ({response.Quotient} with {response.Remainder} of Remainder )";
         }
+    }
+
+
+    public class SendReplay1Request
+    {
+        public int Dividend { get; set; }
+
+        public int Divisor { get; set; }
+    }
+
+    public class SendReplay1Response
+    {
+        public int Quotient { get; set; }
+
+        public decimal Result { get; set; }
+
+        public int Remainder { get; set; }
     }
 }

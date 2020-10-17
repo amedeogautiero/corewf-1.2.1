@@ -58,7 +58,7 @@ namespace wfIntesa
             }
             catch (Exception exc)
             {
-                response = default(TResponse);
+                throw exc;
             }
             return response;
         }
@@ -294,13 +294,6 @@ namespace wfIntesa
                 }
             };
 
-            TResponse respnse = default(TResponse);
-
-            int calls = 0;
-
-            
-
-            //WorkflowInstanceContext<TRequest, TResponse> instanceContext = new WorkflowInstanceContext<TRequest, TResponse>()
             WorkflowInstanceContext instanceContext = new WorkflowInstanceContext()
             {
                 Request = request,
@@ -309,13 +302,6 @@ namespace wfIntesa
             
             invokeMode = WorkflowInvokeMode.Run;
 
-            //WorkflowApplication wfApp = new WorkflowApplication(this.workflow);
-            //wfApp.InstanceStore = this.instanceStore;
-            //wfApp.Extensions.Add<WorkflowInstanceContext>(() =>
-            //{
-            //    return instanceContext;
-            //});
-            //setWFEvents(wfApp);
             WorkflowApplication wfApp = null;
             Guid wfId = Guid.Empty;
 
@@ -337,8 +323,6 @@ namespace wfIntesa
                     wfApp.ResumeBookmark(OperationName, "bookmark data",timeOut);
                     waitOne();
                 }
-
-                int a = 0;
             }; 
             
 
