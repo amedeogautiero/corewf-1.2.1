@@ -3,19 +3,22 @@ using System.Activities;
 using System.Activities.Statements;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using wfIntesa.Activities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 
 namespace wfIntesa.Workflows
 {
     public class Samples
     {
-        static WorkflowsManager manager = null;
+        static System.Activities.IWorkflowsManager manager = null;
 
         static Samples()
         {
-            Samples.manager = new WorkflowsManager();
+            manager = ServiceActivator.GetScope().ServiceProvider.GetService<System.Activities.IWorkflowsManager>();
         }
 
         public static void Test(string str)
@@ -53,11 +56,12 @@ namespace wfIntesa.Workflows
                 }
             };
 
-            WorkflowsManager manager = new WorkflowsManager();
+            //WorkflowsManager manager = new WorkflowsManager();
 
-            var wfi = manager.StartWorkflow(workflow);
-            var response = wfi.Execute<string, string>("request in input");
-            return response;
+            // wfi = manager.StartWorkflow(workflow);
+            //var response = wfi.Execute<string, string>("request in input");
+            //return response;
+            return null;
         }
 
         public static string sample_divide()
@@ -363,7 +367,7 @@ namespace wfIntesa.Workflows
 
         public static void sample_bookmark2()
         {
-            WorkflowsManager manager = new WorkflowsManager();
+            //WorkflowsManager manager = new WorkflowsManager();
 
             //Variable<string> request = new Variable<string>("request", "default value");
            
@@ -384,12 +388,12 @@ namespace wfIntesa.Workflows
             
 
 
-            var wfi = manager.StartWorkflow(workflow);
-            wfi.Execute<string, string>("request in input");
+            //var wfi = manager.StartWorkflow(workflow);
+            //wfi.Execute<string, string>("request in input");
 
         }
 
-        public static string sample_SendReplay1()
+        public static string sample_SendReplay1(HttpContext context)
         {
             Func<Activity> getWorkflowDefinition = delegate ()
             {
@@ -454,17 +458,105 @@ namespace wfIntesa.Workflows
             
             return $"{request.Dividend} / {request.Divisor} = {response.Result} or ({response.Quotient} with {response.Remainder} of Remainder )";
         }
+
+        public static string sample_pick1()
+        {
+            Func<Activity> getWorkflowDefinition = delegate ()
+            {
+                Variable<int> v_totale = new Variable<int>();
+                Variable<int> v_ndasommare = new Variable<int>();
+                Variable<bool> v_continue = new Variable<bool>("v_fine", true);
+
+                Sequence workflow = new Sequence()
+                {
+                    Variables = { v_ndasommare, v_totale , v_continue },
+                    Activities = {
+                        new Receive("Start")
+                        {
+
+                        },
+                        new SendReplay<bool>()
+                        {
+                            DisplayName = "SendReplay start",
+                            Response = new InArgument<bool>(true)
+                        },
+                        new While()
+                        {
+                            Condition = v_continue,
+                            Body = new System.Activities.Statements.Pick()
+                            {
+                                Branches = {
+                                    new PickBranch()
+                                    {
+                                        Trigger = new Receive<int>("Somma")
+                                        {
+                                            Request = new OutArgument<int>(v_ndasommare)
+                                        },
+                                        Action = new Assign()
+                                        {
+                                            To = new OutArgument<int>(v_totale),
+                                            Value = new InArgument<int>(e => v_totale.Get(e) + v_ndasommare.Get(e) )
+                                        }
+                                    },
+                                    new PickBranch()
+                                    {
+                                        Trigger = new Receive("Fine")
+                                        {
+                                            
+                                        },
+                                        Action = new Assign<bool>()
+                                        {
+                                            To = new OutArgument<bool>(v_continue),
+                                            Value = new InArgument<bool>(true)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        new SendReplay<int>()
+                        {
+                            DisplayName = "SendReplay totale",
+                            Response = new InArgument<int>(v_totale)
+                        }
+                    }
+                };
+
+                return workflow;
+            };
+
+            var workflowDefinition = getWorkflowDefinition();
+            var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");
+
+            if (response)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("<form action='/step'>");
+                sb.Append("<input type='hidder' name='step' value='step_pick1_somma' />");
+                sb.Append("<input type='text' name='numero'/>");
+                sb.Append("<input type='button' value='submit'/>");
+                sb.Append("</form>");
+                return sb.ToString();
+            }
+
+            return "Qualche cosa è andato storto";
+        }
     }
 
+    public class RequestBase
+    { }
 
-    public class SendReplay1Request
+    public class ResponseBase
+    { }
+
+
+    public class SendReplay1Request : RequestBase
     {
         public int Dividend { get; set; }
 
         public int Divisor { get; set; }
     }
 
-    public class SendReplay1Response
+    public class SendReplay1Response : ResponseBase
     {
         public int Quotient { get; set; }
 

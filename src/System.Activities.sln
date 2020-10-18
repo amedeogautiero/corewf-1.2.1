@@ -40,7 +40,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{778DAE3C-4631-46EA-AA77-85C1314464D9}") = "Microsoft.CodeAnalysis.VisualBasic.Scripting", "VisualBasic\Microsoft.CodeAnalysis.VisualBasic.Scripting.vbproj", "{766C237E-1920-494B-BF44-BA374EC2FCF6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wfIntesa", "wfIntesa\wfIntesa.csproj", "{C7262759-7EEB-4ED7-9DC1-9D5CFEAB616D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "wfIntesa", "wfIntesa\wfIntesa.csproj", "{C7262759-7EEB-4ED7-9DC1-9D5CFEAB616D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkflowManager", "WorkflowManager\WorkflowManager.csproj", "{E6027D27-3EB9-4197-A56F-41617263DDF6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -104,6 +106,10 @@ Global
 		{C7262759-7EEB-4ED7-9DC1-9D5CFEAB616D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7262759-7EEB-4ED7-9DC1-9D5CFEAB616D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7262759-7EEB-4ED7-9DC1-9D5CFEAB616D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6027D27-3EB9-4197-A56F-41617263DDF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6027D27-3EB9-4197-A56F-41617263DDF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6027D27-3EB9-4197-A56F-41617263DDF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6027D27-3EB9-4197-A56F-41617263DDF6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -10,13 +10,9 @@ namespace wfIntesa.Activities
     {
         public InArgument<TResponse> Response { get; set; }
 
-        //protected override void CacheMetadata(NativeActivityMetadata metadata)
-        //{
-        //    metadata.AddImplementationVariable(_iteration);
-        //}
-
         protected override void Execute(NativeActivityContext context)
         {
+            var n = this.DisplayName;
             var icontext = context.GetExtension<WorkflowInstanceContext>();
 
             icontext.Response = this.Response.Get(context);

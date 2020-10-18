@@ -1,69 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Activities.Runtime.DurableInstancing;
-using System.Activities;
 
-namespace wfIntesa.todelete
+namespace System.Activities
 {
-    public class WorkflowsManager
-    {
-        private InstanceStore m_InstanceStore = null;
-        public WorkflowsManager()
-        {
-            string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-            string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-            if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-            {
-                InstanceStore instanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-            }
-        }
-
-        private InstanceStore InstanceStore
-        {
-            get
-            {
-                if (m_InstanceStore == null)
-                {
-                    string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-                    string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-                    if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-                    {
-                        m_InstanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-                    }
-                }
-
-                return m_InstanceStore;
-            }
-        }
-
-        public WorkflowInstanceManager StartWorkflow(Activity workflow)
-        {
-            WorkflowInstanceManager workflowManager = new WorkflowInstanceManager(workflow);
-            workflowManager.instanceStore = InstanceStore;
-            return workflowManager;
-        }
-
-        public TResponse StartWorkflow<TRequest, TResponse>(Activity workflow, TRequest request, string OperationName)
-        {
-            TResponse response = default(TResponse);
-
-            WorkflowInstanceManager workflowManager = new WorkflowInstanceManager(workflow);
-            workflowManager.instanceStore = InstanceStore;
-            try
-            {
-                response = workflowManager.StartWorkflow<TRequest, TResponse>(request, OperationName);
-            }
-            catch (Exception exc)
-            {
-                throw exc;
-            }
-            return response;
-        }
-    }
-
     public class WorkflowInstanceManager
     {
         AutoResetEvent s_idleEvent = null;
@@ -76,7 +18,7 @@ namespace wfIntesa.todelete
         internal System.Activities.Runtime.DurableInstancing.InstanceStore instanceStore = null;
         Activity workflow = null;
 
-        private void setWFEvents (WorkflowApplication wf)
+        private void setWFEvents(WorkflowApplication wf)
         {
             wf.Idle = delegate (WorkflowApplicationIdleEventArgs e)
             {
@@ -124,7 +66,7 @@ namespace wfIntesa.todelete
                 return PersistableIdleAction.None;
             };
 
-            wf.Aborted = e => 
+            wf.Aborted = e =>
             {
                 int a = 0;
                 //syncEvent.Set(); 
@@ -142,7 +84,7 @@ namespace wfIntesa.todelete
         }
 
         private void resetEvents()
-        { 
+        {
             s_idleEvent = new AutoResetEvent(false);
             s_completedEvent = new AutoResetEvent(false);
             s_unloadedEvent = new AutoResetEvent(false);
@@ -152,7 +94,7 @@ namespace wfIntesa.todelete
         {
             WorkflowApplication wfApp = new WorkflowApplication(this.workflow);
             wfApp.InstanceStore = this.instanceStore;
-            
+
             wfApp.Extensions.Add<WorkflowInstanceContext>(() =>
             {
                 return instanceContext;
@@ -229,7 +171,7 @@ namespace wfIntesa.todelete
             return respnse;
         }
 
-        public TResponse Execute<TRequest, TResponse>(TRequest request) 
+        public TResponse Execute<TRequest, TResponse>(TRequest request)
         {
             TResponse respnse = default(TResponse);
 
@@ -241,15 +183,15 @@ namespace wfIntesa.todelete
                 Request = request,
                 Response = default(TResponse)
             };
-            
+
 
             Dictionary<string, object> inputs = new Dictionary<string, object>();
             //inputs.Add("Request", request);
 
             WorkflowApplication wf = new WorkflowApplication(this.workflow, inputs);
-            wf.Extensions.Add<WorkflowInstanceContext>( () => 
-            { 
-                return instanceContext; 
+            wf.Extensions.Add<WorkflowInstanceContext>(() =>
+            {
+                return instanceContext;
             });
 
             wf.Completed = e => { syncEvent.Set(); };
@@ -270,7 +212,7 @@ namespace wfIntesa.todelete
                 response = (TResponse)instanceContext.Response;
             }
             catch
-            { 
+            {
             }
 
             return response;
@@ -300,7 +242,7 @@ namespace wfIntesa.todelete
                 Request = request,
                 Response = default(TResponse)
             };
-            
+
             invokeMode = WorkflowInvokeMode.Run;
 
             WorkflowApplication wfApp = null;
@@ -308,7 +250,7 @@ namespace wfIntesa.todelete
 
             while (invokeMode != WorkflowInvokeMode.None)
             {
-                if (invokeMode == WorkflowInvokeMode.Run) 
+                if (invokeMode == WorkflowInvokeMode.Run)
                 {
                     wfApp = createWorkflowApplication(instanceContext);
                     wfId = wfApp.Id;
@@ -332,8 +274,8 @@ namespace wfIntesa.todelete
                         throw new Exception($"Bookmark {OperationName} missing on workflow with id {wfApp.Id}");
                     }
                 }
-            }; 
-            
+            };
+
 
             TResponse response = default(TResponse);
 
@@ -347,28 +289,5 @@ namespace wfIntesa.todelete
 
             return response;
         }
-    }
-
-    public class WorkflowInstanceContext
-    {
-        public object Request { get; set; }
-
-        public object Response { get; set; }
-    }
-
-    public class WorkflowInstanceContext<TRequest, TResponse> : WorkflowInstanceContext
-    {
-        public new TRequest Request { get; set; }
-
-        public new TResponse Response { get; set; }
-
-    }
-
-    public enum WorkflowInvokeMode
-    {
-        UnKnow,
-        None,
-        Run,
-        ResumeBookmark
     }
 }
