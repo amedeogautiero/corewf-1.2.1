@@ -23,43 +23,13 @@ namespace wfIntesa
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            System.Activities.Runtime.DurableInstancing.InstanceStore instanceStore = null;
-
-            //string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-            //string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-            //if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-            //{
-            //    instanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-            //}
-
-            //services.AddSingleton(typeof(System.Activities.IWorkflowsManager), sp => new System.Activities.WorkflowsManager()
-            //{ 
-            //    InstanceStore = instanceStore
-            //});
-
-            //services.AddSingleton<System.Activities.Runtime.DurableInstancing.InstanceStore, JsonFileInstanceStore.FileInstanceStore>();
-            services.AddSingleton(typeof(System.Activities.Runtime.DurableInstancing.InstanceStore), sp =>
-            {
-                var config = sp.GetService<IConfiguration>();
-                string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-                string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-                if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-                {
-                    return new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-                }
-                return null;
-            });
-
-            services.AddSingleton<System.Activities.IWorkflowsManager, System.Activities.WorkflowsManager>();
+            services.AddWorkflow();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public async void Configure(IApplicationBuilder app, IWebHostEnvironment env, IConfiguration config, IServiceProvider sp)
         {
-            if (Startup.config == null)
-                Startup.config = config;
-
-            ServiceActivator.Configure(app.ApplicationServices);
+            app.UseWorkflow();
 
             string backToHome = "</br></br><a href='/'>Back to home</a>";
             if (env.IsDevelopment())
@@ -112,7 +82,7 @@ namespace wfIntesa
                         sBuilder.Append($"{ret}");
                         sBuilder.Append("</br>");
                         //sBuilder.Append($"sample {sampleSuffix} completed!!!</br>");
-                        sBuilder.Append($"Sample {sample.Name} executed!!!</br>");
+                        sBuilder.Append($"</br>Sample {sample.Name} executed!!!</br>");
                         sBuilder.Append(backToHome);
                         sBuilder.Append("</body>");
                         sBuilder.Append("</html>");
@@ -145,30 +115,5 @@ namespace wfIntesa
         }
     }
 
-    public class ServiceActivator
-    {
-        internal static IServiceProvider _serviceProvider = null;
-
-        /// <summary>
-        /// Configure ServiceActivator with full serviceProvider
-        /// </summary>
-        /// <param name="serviceProvider"></param>
-        public static void Configure(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
-
-        /// <summary>
-        /// Create a scope where use this ServiceActivator
-        /// </summary>
-        /// <param name="serviceProvider"></param>
-        /// <returns></returns>
-        public static IServiceScope GetScope(IServiceProvider serviceProvider = null)
-        {
-            var provider = serviceProvider ?? _serviceProvider;
-            return provider?
-                .GetRequiredService<IServiceScopeFactory>()
-                .CreateScope();
-        }
-    }
+    
 }

@@ -5,12 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Activities.Runtime.DurableInstancing;
 using System.Activities;
-
+using Microsoft.Extensions.DependencyInjection;
 namespace System.Activities
 {
     public interface IWorkflowsManager
     {
-        TResponse StartWorkflow<TRequest, TResponse>(Activity workflow, TRequest request, string OperationName);
+        TResponse StartWorkflow<TRequest, TResponse>(WorkflowDefinition definition, TRequest request, string OperationName);
     }
 
     public class WorkflowsManager : IWorkflowsManager
@@ -55,12 +55,28 @@ namespace System.Activities
             return workflowManager;
         }
 
-        public TResponse StartWorkflow<TRequest, TResponse>(Activity workflow, TRequest request, string OperationName)
+        public TResponse StartWorkflow<TRequest, TResponse>(WorkflowDefinition definition, TRequest request, string OperationName)
         {
             TResponse response = default(TResponse);
 
-            WorkflowInstanceManager workflowManager = new WorkflowInstanceManager(workflow);
-            workflowManager.instanceStore = InstanceStore;
+            WorkflowInstanceManager workflowManager = new WorkflowInstanceManager(definition.Workflow);
+            //workflowManager.instanceStore = InstanceStore;
+
+            workflowManager.instanceStore = WorkflowActivator.GetScope().ServiceProvider.GetService<System.Activities.Runtime.DurableInstancing.InstanceStore>();
+            if (workflowManager.instanceStore is IStoreCorrelation)
+            {
+                (workflowManager.instanceStore as IStoreCorrelation).Correlation = new WorkflowCorrelation()
+                {
+                    CorrelationId = definition.InstanceCorrelation,
+                    //WorkflowId = wfApp.Id,
+                };
+            }
+
+            //if (InstanceStore is IStoreCorrelation)
+            //{
+            //    (InstanceStore as IStoreCorrelation).Correlation.CorrelationId = definition.InstanceCorrelation;
+            //}
+
             try
             {
                 response = workflowManager.StartWorkflow<TRequest, TResponse>(request, OperationName);

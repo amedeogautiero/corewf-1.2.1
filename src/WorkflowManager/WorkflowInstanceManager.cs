@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace System.Activities
 {
@@ -75,7 +76,6 @@ namespace System.Activities
             //wfApp.Idle = e => { /*syncEvent.Set();*/ };
             //wfApp.PersistableIdle = e => { return PersistableIdleAction.Unload; };
             //wfApp.OnUnhandledException = e => { return UnhandledExceptionAction.Terminate; };
-
         }
 
         public WorkflowInstanceManager(Activity workflow)
@@ -94,11 +94,27 @@ namespace System.Activities
         {
             WorkflowApplication wfApp = new WorkflowApplication(this.workflow);
             wfApp.InstanceStore = this.instanceStore;
+            //wfApp.InstanceStore = WorkflowActivator.GetScope().ServiceProvider.GetService< System.Activities.Runtime.DurableInstancing.InstanceStore>();
+            //if ((wfApp.InstanceStore is IStoreCorrelation)
+            //    && (wfApp.InstanceStore as IStoreCorrelation).Correlation != null)
+            //{
+            //    (wfApp.InstanceStore as IStoreCorrelation).Correlation.WorkflowId = wfApp.Id;
+            //}
 
             wfApp.Extensions.Add<WorkflowInstanceContext>(() =>
             {
                 return instanceContext;
             });
+
+
+            wfApp.Extensions.Add<string>(() =>
+            {
+                return Guid.Empty.ToString();
+            });
+
+            //Xml.Linq.XName WFInstanceScopeName = Xml.Linq.XName.Get("test123", "<namespace>");
+            //wfApp.AddInitialInstanceValues(new Dictionary<Xml.Linq.XName, object>() { { "WorkflowHostTypeName", WFInstanceScopeName } });
+
             setWFEvents(wfApp);
 
             return wfApp;

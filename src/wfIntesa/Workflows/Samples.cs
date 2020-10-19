@@ -18,7 +18,8 @@ namespace wfIntesa.Workflows
 
         static Samples()
         {
-            manager = ServiceActivator.GetScope().ServiceProvider.GetService<System.Activities.IWorkflowsManager>();
+            //manager = ServiceActivator.GetScope().ServiceProvider.GetService<System.Activities.IWorkflowsManager>();
+            manager = WorkflowActivator.GetScope().ServiceProvider.GetService<System.Activities.IWorkflowsManager>();
         }
 
         public static void Test(string str)
@@ -407,46 +408,46 @@ namespace wfIntesa.Workflows
                 {
                     Variables = { v_result, v_resultInt, v_remainder, v_request, v_response },
                     Activities = {
-                    new Receive<SendReplay1Request>("Submit")
-                    {
-                        Request = new OutArgument<SendReplay1Request>(v_request)
-                    },
-                    new Divide()
-                    {
-                        //IN
-                        Dividend = new InArgument<int>(e => v_request.Get(e).Dividend),
-                        Divisor  = new InArgument<int>(e => v_request.Get(e).Divisor),
-                        
-                        //OUT
-                        Quotient = new OutArgument<int>(v_resultInt),
-                        Result = new OutArgument<decimal>(v_result),
-                        Remainder = new OutArgument<int>(v_remainder),
-                    },
-                    new Assign<SendReplay1Response>()
-                    {
-                        To = v_response,
-                        Value =new InArgument<SendReplay1Response>(e => new SendReplay1Response()
+                        new Receive<SendReplay1Request>("Submit")
                         {
-                             Result = v_result.Get(e),
-                             Quotient = v_resultInt.Get(e),
-                             Remainder = v_remainder.Get(e),
-                        })
-                    },
-                    new SendReplay<SendReplay1Response>()
-                    {
-                        Response = v_response
-                    },
-                    new Receive<SendReplay1Request>("Continue")
-                    {
-                        Request = new OutArgument<SendReplay1Request>(v_request)
+                            Request = new OutArgument<SendReplay1Request>(v_request)
+                        },
+                        new Divide()
+                        {
+                            //IN
+                            Dividend = new InArgument<int>(e => v_request.Get(e).Dividend),
+                            Divisor  = new InArgument<int>(e => v_request.Get(e).Divisor),
+                        
+                            //OUT
+                            Quotient = new OutArgument<int>(v_resultInt),
+                            Result = new OutArgument<decimal>(v_result),
+                            Remainder = new OutArgument<int>(v_remainder),
+                        },
+                        new Assign<SendReplay1Response>()
+                        {
+                            To = v_response,
+                            Value =new InArgument<SendReplay1Response>(e => new SendReplay1Response()
+                            {
+                                 Result = v_result.Get(e),
+                                 Quotient = v_resultInt.Get(e),
+                                 Remainder = v_remainder.Get(e),
+                            })
+                        },
+                        new SendReplay<SendReplay1Response>()
+                        {
+                            Response = v_response
+                        },
                     }
-                }
                 };
 
                 return workflow;
             };
 
-            var workflowDefinition = getWorkflowDefinition();
+            WorkflowDefinition workflowDefinition = new WorkflowDefinition()
+            {
+                Workflow = getWorkflowDefinition(),
+                InstanceCorrelation = Guid.NewGuid(), //id contesto ....
+            };
 
             SendReplay1Request request = new SendReplay1Request()
             {
@@ -455,8 +456,10 @@ namespace wfIntesa.Workflows
             };
             
             var response = manager.StartWorkflow<SendReplay1Request, SendReplay1Response>(workflowDefinition, request, "Submit");
-            
-            return $"{request.Dividend} / {request.Divisor} = {response.Result} or ({response.Quotient} with {response.Remainder} of Remainder )";
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"{request.Dividend} / {request.Divisor} = {response.Result} or ({response.Quotient} with {response.Remainder} of Remainder )");
+            return sb.ToString();
         }
 
         public static string sample_pick1()
@@ -524,14 +527,20 @@ namespace wfIntesa.Workflows
                 return workflow;
             };
 
-            var workflowDefinition = getWorkflowDefinition();
+            WorkflowDefinition workflowDefinition = new WorkflowDefinition()
+            {
+                Workflow = getWorkflowDefinition(),
+                InstanceCorrelation = Guid.NewGuid(),
+            };
+
             var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");
 
             if (response)
             {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("<form action='/step'>");
-                sb.Append("<input type='hidder' name='step' value='step_pick1_somma' />");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.InstanceCorrelation}' />");
+                sb.Append("<input type='hidden' name='step' value='step_pick1_somma' />");
                 sb.Append("<input type='text' name='numero'/>");
                 sb.Append("<input type='button' value='submit'/>");
                 sb.Append("</form>");
