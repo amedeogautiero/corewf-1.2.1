@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Activities;
+using System.Activities.Expressions;
 using System.Activities.Statements;
 using System.Collections.Generic;
 using System.Linq;
@@ -131,6 +132,133 @@ namespace wfIntesa.Workflows
 
 
             return workflow;
+        }
+
+        public static Activity workflow_dynamic1()
+        {
+            //https://docs.microsoft.com/it-it/dotnet/api/system.activities.dynamicactivity?view=netframework-4.8
+
+            //var numbers = new InArgument<List<int>>();
+            //var average = new OutArgument<double>();
+            var actual = new InArgument<decimal>(0);
+            var number = new InArgument<decimal>(0);
+            var operation = new InArgument<string>(); 
+            var result = new InArgument<decimal>(0);
+
+            var v_number = new Variable<decimal>();
+
+
+            return new DynamicActivity()
+            {
+                Properties =
+                {
+                    // Input argument
+                    new DynamicActivityProperty
+                    {
+                        Name = "Actual",
+                        Type = actual.GetType(),
+                        Value = actual,
+                    },
+                    new DynamicActivityProperty
+                    {
+                        Name = "Number",
+                        Type = number.GetType(),
+                        Value = number,
+                    },
+                    new DynamicActivityProperty
+                    {
+                        Name = "Operation",
+                        Type = operation.GetType(),
+                        Value = operation,
+                    },
+
+                    // Output argument
+                    new DynamicActivityProperty
+                    {
+                        Name = "Result",
+                        Type = result.GetType(),
+                        Value = result
+                    }
+                },
+                Implementation = () =>
+                    new Sequence()
+                    {
+                        Activities = {
+                            
+                            new Switch<string>()
+                            {
+                                Expression = new System.Activities.Expressions.ArgumentValue<string> { ArgumentName = "Operation" },
+                                Cases = 
+                                {
+                                    {
+                                        "+", new Assign<decimal>()
+                                        {
+                                            To = new System.Activities.Expressions.ArgumentReference<decimal> { ArgumentName = "Result" },
+                                            Value = new InArgument<decimal>(env => actual.Get(env) + number.Get(env))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+            };
+        }
+
+
+        public class SFSystemDummy : Activity
+        {
+            public InArgument<string> Operation { get; set; }
+            public InArgument<decimal> Actual { get; set; }
+
+            public InArgument<decimal> Number { get; set; }
+
+            public OutArgument<decimal> Result { get; set; }
+
+            public ActivityDelegate Delegate1 { get; set; }
+
+            public SFSystemDummy()
+            {
+                 
+                this.Implementation = () =>
+                    new Sequence()
+                    {
+                        Activities =
+                        {
+                            new Switch<string>()
+                            {
+                                Expression = new System.Activities.Expressions.ArgumentValue<string> { ArgumentName = "Operation" },
+                                Cases =
+                                {
+                                    {
+                                        "+", new Assign<decimal>()
+                                        {
+                                            To = new System.Activities.Expressions.ArgumentReference<decimal> { ArgumentName = "Result" },
+                                            Value = 12
+                                        }
+                                    },
+                                    {
+                                        "-", 
+                                        new Sequence()
+                                        {
+                                            Activities =
+                                            { 
+                                                new Assign<decimal>()
+                                                {
+                                                    To = new System.Activities.Expressions.ArgumentReference<decimal> { ArgumentName = "Result" },
+                                                    Value = 7
+                                                },
+                                                new InvokeDelegate()
+                                                {
+                                                     Delegate = Delegate1,
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+            }
         }
     }
 }

@@ -38,10 +38,13 @@ namespace System.Activities
 
                 if (e.TerminationException != null)
                 {
+                    exception = e.TerminationException;
                     Console.WriteLine("TerminationException = {0}; {1}", e.TerminationException.GetType().ToString(), e.TerminationException.Message);
                 }
-                s_completedEvent.Set();
+                s_completedEvent?.Set();
                 //s_syncEvent.Set();
+
+                invokeMode = WorkflowInvokeMode.None;
             };
 
             wf.Unloaded = delegate (WorkflowApplicationEventArgs e)

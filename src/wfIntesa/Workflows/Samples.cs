@@ -40,6 +40,12 @@ namespace wfIntesa.Workflows
             int a = 0;
         }
 
+        public static void Test(decimal str)
+        {
+            Console.WriteLine("Test.....");
+            int a = 0;
+        }
+
         public static string sample_request1()
         {
             Variable<string> receive = new Variable<string>();
@@ -539,6 +545,54 @@ namespace wfIntesa.Workflows
             StringBuilder sb = new StringBuilder();
             sb.Append($"Totale: {response}</br></br>");
             return sb.ToString();
+        }
+
+        public static string sample_dynamic1(HttpContext context)
+        {
+            var actual = new InArgument<decimal>(0);
+            var number = new InArgument<decimal>(0);
+            var operation = new InArgument<string>("-");
+            var result = new InArgument<decimal>(0);
+
+            Variable<decimal> v_result = new Variable<decimal>();
+
+            Sequence Workflow = new Sequence()
+            {
+                Variables = { v_result },
+                Activities =
+                {
+                    new WorkflowDefinitions.SFSystemDummy()
+                    {
+                        Operation = operation,
+                        Result = new OutArgument<decimal>(v_result),
+                        Delegate1 = new ActivityAction()
+                        {
+                            Handler = new InvokeMethod()
+                            {
+                                MethodName = nameof(Samples.Test),
+                                TargetType = typeof(Samples),
+                                Parameters = { new InArgument<decimal>(123) }
+                            }
+                        }
+                    },
+                    new InvokeMethod()
+                    {
+                        MethodName = nameof(Samples.Test),
+                        TargetType = typeof(Samples),
+                        Parameters = { new InArgument<decimal>(env => v_result.Get(env)) }
+                    }
+                }
+            };
+
+            WorkflowDefinition workflowDefinition = new WorkflowDefinition()
+            {
+                Workflow = Workflow, //WorkflowDefinitions.workflow_dynamic1(),
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse("7777b449-410c-49d9-b29b-b37419d0895a") /*Guid.NewGuid()*/ },
+            };
+
+            var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");
+
+            return null;
         }
     }
 
