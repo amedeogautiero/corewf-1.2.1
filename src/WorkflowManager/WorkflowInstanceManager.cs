@@ -21,6 +21,8 @@ namespace System.Activities
 
         internal Guid WorkflowId = Guid.Empty;
 
+        private Exception exception = null;
+
         private void setWFEvents(WorkflowApplication wf)
         {
             wf.Idle = delegate (WorkflowApplicationIdleEventArgs e)
@@ -71,10 +73,9 @@ namespace System.Activities
 
             wf.Aborted = e =>
             {
-                int a = 0;
-
-                throw e.Reason;
-
+                this.exception = e.Reason;
+                //throw e.Reason;
+                
                 //syncEvent.Set(); 
                 s_syncEvent?.Set();
             };
@@ -281,6 +282,9 @@ namespace System.Activities
                         throw new Exception($"Bookmark {OperationName} missing on workflow with id {wfApp.Id}");
                     }
                 }
+
+                if (exception != null)
+                    throw exception;
             };
 
             TResponse response = default(TResponse);

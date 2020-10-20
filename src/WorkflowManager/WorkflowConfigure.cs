@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Activities;
@@ -25,10 +26,16 @@ namespace /*System.Activities*/ Microsoft.Extensions.DependencyInjection
 
                     return Activator.CreateInstance(StoreType, new object[] { config_WorkflowInstanceParams });
                 }
+                else
+                {
+                    return new System.Activities.Runtime.DurableInstancing.Memory.MemoryIstancestore();
+                }
 
                 //todo: default memory store
                 return null;
             });
+
+            services.AddDbContext<System.Activities.Runtime.DurableInstancing.Memory.MemoryContext>(opt => opt.UseInMemoryDatabase("workflows"));
 
             services.AddSingleton<System.Activities.IWorkflowsManager, System.Activities.WorkflowsManager>();
         }
