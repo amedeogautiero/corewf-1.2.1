@@ -17,6 +17,17 @@ namespace JsonFileInstanceStore
     {
         public System.Activities.WorkflowCorrelation Correlation { get; set; }
 
+        public void Correlate()
+        {
+            if (this.Correlation.WorkflowId == Guid.Empty)
+            { 
+                string serialized = string.Empty;
+                serialized = File.ReadAllText(_storePath("Correlation"));
+                WorkflowCorrelation correlation = WorkflowSerialization.DeSerialize<WorkflowCorrelation>(serialized);
+                this.Correlation.WorkflowId = correlation.WorkflowId;
+            }
+        }
+
         private readonly string _storeDirectoryPath;
 
         private string _storePathInstanceData
@@ -37,6 +48,11 @@ namespace JsonFileInstanceStore
                 //return System.IO.Path.Combine(_storeDirectoryPath, $"{Correlation.CorrelationId}-InstanceMetadata");
                 return System.IO.Path.Combine(_storeDirectoryPath, $"AAAA-InstanceMetadata");
             }
+        }
+
+        private string _storePath(string suffix)
+        {
+            return System.IO.Path.Combine(_storeDirectoryPath, $"{Correlation.CorrelationId}-{suffix}");
         }
 
         private List<Type> _knownTypes = null;
@@ -72,8 +88,9 @@ namespace JsonFileInstanceStore
 
             var t1 = sysActivitiesAssembly.GetType("System.Activities.Variable`1+VariableLocation[[System.Int32, System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]");
             _knownTypes.Add(t1);
-        }
 
+            _knownTypes.Add(typeof(WorkflowCorrelation));
+        }
 
         private readonly JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
         {
@@ -168,7 +185,7 @@ namespace JsonFileInstanceStore
             instanceMetadata = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceMetadata, _jsonSerializerSettings);
         }
 
-        private void serialize_dc(Dictionary<string, InstanceValue> instanceData, Dictionary<string, InstanceValue> instanceMetadata)
+        private void serialize_dc_todelete(Dictionary<string, InstanceValue> instanceData, Dictionary<string, InstanceValue> instanceMetadata)
         {
             System.Runtime.Serialization.DataContractSerializerSettings settings = new System.Runtime.Serialization.DataContractSerializerSettings
             {
@@ -177,6 +194,13 @@ namespace JsonFileInstanceStore
             };
 
             System.Runtime.Serialization.DataContractSerializer serializer = new System.Runtime.Serialization.DataContractSerializer(instanceData.GetType(), settings);
+            
+            string serializedCorrelation = null;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                serializer.WriteObject(ms, Correlation);
+                serializedCorrelation = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+            }
 
             string serializedInstanceData = null;
             using (MemoryStream ms = new MemoryStream())
@@ -192,11 +216,14 @@ namespace JsonFileInstanceStore
                 serializedInstanceMetadata = System.Text.Encoding.UTF8.GetString(ms.ToArray());
             }
 
-            File.WriteAllText(_storePathInstanceData, serializedInstanceData);
-            File.WriteAllText(_storePathInstanceMetadata, serializedInstanceMetadata);
+            File.WriteAllText(_storePath("Correlation"), serializedCorrelation);
+            File.WriteAllText(_storePath("InstanceData"), serializedInstanceData);
+            File.WriteAllText(_storePath("InstanceMetadata"), serializedInstanceMetadata);
+            //File.WriteAllText(_storePathInstanceData, serializedInstanceData);
+            //File.WriteAllText(_storePathInstanceMetadata, serializedInstanceMetadata);
         }
 
-        private void deserialize_dc(out Dictionary<string, InstanceValue> instanceData, out Dictionary<string, InstanceValue> instanceMetadata)
+        private void deserialize_dc_todelete(out Dictionary<string, InstanceValue> instanceData, out Dictionary<string, InstanceValue> instanceMetadata)
         {
             System.Runtime.Serialization.DataContractSerializerSettings settings = new System.Runtime.Serialization.DataContractSerializerSettings
             {
@@ -205,17 +232,37 @@ namespace JsonFileInstanceStore
             };
             System.Runtime.Serialization.DataContractSerializer deserializer = new System.Runtime.Serialization.DataContractSerializer(typeof(Dictionary<string, InstanceValue>), settings);
 
-            var serializedInstanceData = File.ReadAllText(_storePathInstanceData);
+            var serializedInstanceData = File.ReadAllText(_storePath("InstanceData"));
             using (MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(serializedInstanceData)))
             {
                 instanceData = (Dictionary<string, InstanceValue>)deserializer.ReadObject(ms);
             }
 
-            var serializedInstanceMetadata = File.ReadAllText(_storePathInstanceMetadata);
+            var serializedInstanceMetadata = File.ReadAllText(_storePath("InstanceMetadata"));
             using (MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(serializedInstanceMetadata)))
             {
                 instanceMetadata = (Dictionary<string, InstanceValue>)deserializer.ReadObject(ms);
             }
+        }
+
+        private void serialize_dc(Dictionary<string, InstanceValue> instanceData, Dictionary<string, InstanceValue> instanceMetadata)
+        {
+            string serializedCorrelation = WorkflowSerialization.Serialize<WorkflowCorrelation>(this.Correlation);
+            string serializedInstanceData = WorkflowSerialization.Serialize<Dictionary<string, InstanceValue>>(instanceData);
+            string serializedInstanceMetadata = WorkflowSerialization.Serialize<Dictionary<string, InstanceValue>>(instanceMetadata);
+            File.WriteAllText(_storePath("Correlation"), serializedCorrelation);
+            File.WriteAllText(_storePath("InstanceData"), serializedInstanceData);
+            File.WriteAllText(_storePath("InstanceMetadata"), serializedInstanceMetadata);
+        }
+
+        private void deserialize_dc(out Dictionary<string, InstanceValue> instanceData, out Dictionary<string, InstanceValue> instanceMetadata)
+        {
+            string serialized = string.Empty;
+            serialized = File.ReadAllText(_storePath("InstanceData"));
+            instanceData = WorkflowSerialization.DeSerialize<Dictionary<string, InstanceValue>>(serialized);
+
+            serialized = File.ReadAllText(_storePath("InstanceMetadata"));
+            instanceMetadata = WorkflowSerialization.DeSerialize<Dictionary<string, InstanceValue>>(serialized);
         }
 
         private bool SaveWorkflow(InstancePersistenceContext context, SaveWorkflowCommand command)

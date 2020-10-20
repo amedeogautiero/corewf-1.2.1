@@ -473,7 +473,7 @@ namespace wfIntesa.Workflows
             WorkflowDefinition workflowDefinition = new WorkflowDefinition()
             {
                 Workflow = WorkflowDefinitions.workflow_pick1(),
-                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.NewGuid() },
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse("7777b449-410c-49d9-b29b-b37419d0895a") /*Guid.NewGuid()*/ },
             };
 
             var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");
@@ -482,7 +482,7 @@ namespace wfIntesa.Workflows
             {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("<form action='/step' method='post'>");
-                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.WorkflowId}' />");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.CorrelationId}' />");
                 sb.Append("<input type='hidden' name='step' value='step_pick1_somma' />");
                 sb.Append("<input type='text' name='numero'/>");
                 sb.Append("<input type='submit' value='submit'/>");
@@ -508,14 +508,14 @@ namespace wfIntesa.Workflows
             {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("<form action='/step' method='post'>");
-                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.WorkflowId}' />");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.CorrelationId}' />");
                 sb.Append("<input type='hidden' name='step' value='step_pick1_somma' />");
                 sb.Append("<input type='text' name='numero'/>");
                 sb.Append("<input type='submit' value='Somma'/>");
                 sb.Append("</form></br></br>");
 
                 sb.Append("<form action='/step' method='post'>");
-                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.WorkflowId}' />");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.CorrelationId}' />");
                 sb.Append("<input type='hidden' name='step' value='step_pick1_fine' />");
                 sb.Append("<input type='submit' value='Fine'/>");
                 sb.Append("</form></br></br>");
