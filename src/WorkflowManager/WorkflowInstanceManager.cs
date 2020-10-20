@@ -19,6 +19,8 @@ namespace System.Activities
         internal System.Activities.Runtime.DurableInstancing.InstanceStore instanceStore = null;
         Activity workflow = null;
 
+        internal Guid WorkflowId = Guid.Empty;
+
         private void setWFEvents(WorkflowApplication wf)
         {
             wf.Idle = delegate (WorkflowApplicationIdleEventArgs e)
@@ -70,8 +72,11 @@ namespace System.Activities
             wf.Aborted = e =>
             {
                 int a = 0;
+
+                throw e.Reason;
+
                 //syncEvent.Set(); 
-                s_syncEvent.Set();
+                s_syncEvent?.Set();
             };
             //wfApp.Idle = e => { /*syncEvent.Set();*/ };
             //wfApp.PersistableIdle = e => { return PersistableIdleAction.Unload; };
@@ -262,6 +267,78 @@ namespace System.Activities
             invokeMode = WorkflowInvokeMode.Run;
 
             WorkflowApplication wfApp = null;
+            //Guid wfId = Guid.Empty;
+
+            while (invokeMode != WorkflowInvokeMode.None)
+            {
+                if (invokeMode == WorkflowInvokeMode.Run)
+                {
+                    wfApp = createWorkflowApplication(instanceContext);
+                    this.WorkflowId = wfApp.Id;
+                    resetEvents();
+                    wfApp.Run(timeOut);
+                    waitOne();
+                }
+                else if (invokeMode == WorkflowInvokeMode.ResumeBookmark)
+                {
+                    wfApp = createWorkflowApplication(instanceContext);
+                    resetEvents();
+                    wfApp.Load(this.WorkflowId, timeOut);
+                    var isWaiting = wfApp.GetBookmarks().FirstOrDefault(b => b.BookmarkName == OperationName);
+                    if (isWaiting != null)
+                    {
+                        wfApp.ResumeBookmark(OperationName, "bookmark data", timeOut);
+                        waitOne();
+                    }
+                    else
+                    {
+                        throw new Exception($"Bookmark {OperationName} missing on workflow with id {wfApp.Id}");
+                    }
+                }
+            };
+
+
+            TResponse response = default(TResponse);
+
+            try
+            {
+                response = (TResponse)instanceContext.Response;
+            }
+            catch
+            {
+            }
+
+            return response;
+        }
+
+        public TResponse ContinueWorkflow<TRequest, TResponse>(TRequest request, string OperationName)
+        {
+            TimeSpan timeOut = TimeSpan.FromMinutes(1);
+
+            Action waitOne = delegate ()
+            {
+                s_syncEvent = null;
+                if (instanceStore != null)
+                {
+                    s_syncEvent = s_unloadedEvent;
+                    s_unloadedEvent.WaitOne();
+                }
+                else
+                {
+                    s_syncEvent = s_idleEvent;
+                    s_idleEvent.WaitOne();
+                }
+            };
+
+            WorkflowInstanceContext instanceContext = new WorkflowInstanceContext()
+            {
+                Request = request,
+                Response = default(TResponse)
+            };
+
+            invokeMode = WorkflowInvokeMode.ResumeBookmark;
+
+            WorkflowApplication wfApp = null;
             Guid wfId = Guid.Empty;
 
             while (invokeMode != WorkflowInvokeMode.None)
@@ -278,7 +355,8 @@ namespace System.Activities
                 {
                     wfApp = createWorkflowApplication(instanceContext);
                     resetEvents();
-                    wfApp.Load(wfId, timeOut);
+                    this.WorkflowId = (wfApp.InstanceStore as IStoreCorrelation).Correlation.CorrelationId;
+                    wfApp.Load(this.WorkflowId, timeOut);
                     var isWaiting = wfApp.GetBookmarks().FirstOrDefault(b => b.BookmarkName == OperationName);
                     if (isWaiting != null)
                     {

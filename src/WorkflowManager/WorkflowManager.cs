@@ -11,6 +11,8 @@ namespace System.Activities
     public interface IWorkflowsManager
     {
         TResponse StartWorkflow<TRequest, TResponse>(WorkflowDefinition definition, TRequest request, string OperationName);
+
+        TResponse ContinueWorkflow<TRequest, TResponse>(WorkflowDefinition definition, TRequest request, string OperationName);
     }
 
     public class WorkflowsManager : IWorkflowsManager
@@ -65,11 +67,13 @@ namespace System.Activities
             workflowManager.instanceStore = WorkflowActivator.GetScope().ServiceProvider.GetService<System.Activities.Runtime.DurableInstancing.InstanceStore>();
             if (workflowManager.instanceStore is IStoreCorrelation)
             {
-                (workflowManager.instanceStore as IStoreCorrelation).Correlation = new WorkflowCorrelation()
-                {
-                    CorrelationId = definition.InstanceCorrelation,
-                    //WorkflowId = wfApp.Id,
-                };
+                //(workflowManager.instanceStore as IStoreCorrelation).Correlation = new WorkflowCorrelation()
+                //{
+                //    //CorrelationId = definition.InstanceCorrelation,
+                //    CorrelationId = definition.Correlation.CorrelationId,
+                //    //WorkflowId = wfApp.Id,
+                //};
+                (workflowManager.instanceStore as IStoreCorrelation).Correlation = definition.Correlation;
             }
 
             //if (InstanceStore is IStoreCorrelation)
@@ -80,6 +84,37 @@ namespace System.Activities
             try
             {
                 response = workflowManager.StartWorkflow<TRequest, TResponse>(request, OperationName);
+                definition.Correlation.WorkflowId = workflowManager.WorkflowId;
+            }
+            catch (Exception exc)
+            {
+                throw exc;
+            }
+            return response;
+        }
+
+        public TResponse ContinueWorkflow<TRequest, TResponse>(WorkflowDefinition definition, TRequest request, string OperationName)
+        {
+            TResponse response = default(TResponse);
+
+            WorkflowInstanceManager workflowManager = new WorkflowInstanceManager(definition.Workflow);
+            //workflowManager.instanceStore = InstanceStore;
+
+            workflowManager.instanceStore = WorkflowActivator.GetScope().ServiceProvider.GetService<System.Activities.Runtime.DurableInstancing.InstanceStore>();
+            if (workflowManager.instanceStore is IStoreCorrelation)
+            {
+                (workflowManager.instanceStore as IStoreCorrelation).Correlation = new WorkflowCorrelation()
+                {
+                    //CorrelationId = definition.InstanceCorrelation,
+                    CorrelationId = definition.Correlation.CorrelationId,
+                    //WorkflowId = wfApp.Id,
+                };
+            }
+
+            try
+            {
+                response = workflowManager.ContinueWorkflow<TRequest, TResponse>(request, OperationName);
+                definition.Correlation.WorkflowId = workflowManager.WorkflowId;
             }
             catch (Exception exc)
             {

@@ -66,6 +66,9 @@ namespace wfIntesa
                       sBuilder.Append(backToHome);
                       sBuilder.Append("</body>");
                       sBuilder.Append("</html>");
+
+                      context.Response.StatusCode = StatusCodes.Status200OK;
+                      context.Response.ContentType = "text/html";
                       await context.Response.WriteAsync(sBuilder.ToString());
                   });
 
@@ -107,6 +110,18 @@ namespace wfIntesa
                     if (stepMethod != null)
                     {
                         var ret = stepMethod.Invoke(null, new object[] { context });
+
+                        StringBuilder sBuilder = new StringBuilder();
+                        sBuilder.Append("<html>");
+                        sBuilder.Append("<body>");
+                        sBuilder.Append($"{ret}");
+                        sBuilder.Append("</br>");
+                        sBuilder.Append($"</br>Sample {stepMethod.Name} executed!!!</br>");
+                        sBuilder.Append(backToHome);
+                        sBuilder.Append("</body>");
+                        sBuilder.Append("</html>");
+                        await context.Response.WriteAsync(sBuilder.ToString());
+                        return;
                     }
 
                     await context.Response.WriteAsync($"step {stepName} not found!!!");

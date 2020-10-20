@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml.Linq;
+using System.Activities;
+using System.Reflection;
 
 namespace JsonFileInstanceStore
 {
@@ -22,7 +24,8 @@ namespace JsonFileInstanceStore
             get
             {
                 //_storeDirectoryPath + "\\" + context.InstanceView.InstanceId
-                return System.IO.Path.Combine(_storeDirectoryPath, $"{Correlation.CorrelationId}-InstanceData");
+                //return System.IO.Path.Combine(_storeDirectoryPath, $"{Correlation.CorrelationId}-InstanceData");
+                return System.IO.Path.Combine(_storeDirectoryPath, $"AAAA-InstanceData");
             }
         }
 
@@ -31,8 +34,44 @@ namespace JsonFileInstanceStore
             get
             {
                 //_storeDirectoryPath + "\\" + context.InstanceView.InstanceId
-                return System.IO.Path.Combine(_storeDirectoryPath, $"{Correlation.CorrelationId}-InstanceMetadata");
+                //return System.IO.Path.Combine(_storeDirectoryPath, $"{Correlation.CorrelationId}-InstanceMetadata");
+                return System.IO.Path.Combine(_storeDirectoryPath, $"AAAA-InstanceMetadata");
             }
+        }
+
+        private List<Type> _knownTypes = null;
+        private void initializeKnownTypes(IEnumerable<Type> knownTypesForDataContractSerializer)
+        {
+            //https://github.com/UiPath/corewf/blob/master/src/Test/TestFileInstanceStore/TestFileInstanceStore.cs
+            _knownTypes = new List<Type>();
+
+            System.Reflection.Assembly sysActivitiesAssembly = typeof(Activity).GetTypeInfo().Assembly;
+            Type[] typesArray = sysActivitiesAssembly.GetTypes();
+
+            //Variable<int>.VariableLocation
+
+            //var t1 = typeof(Variable<int>); 
+
+            // Remove types that are not decorated with a DataContract attribute
+            foreach (Type t in typesArray)
+            {
+                TypeInfo typeInfo = t.GetTypeInfo();
+                if (typeInfo.GetCustomAttribute<System.Runtime.Serialization.DataContractAttribute>() != null)
+                {
+                    _knownTypes.Add(t);
+                }
+            }
+
+            if (knownTypesForDataContractSerializer != null)
+            {
+                foreach (Type knownType in knownTypesForDataContractSerializer)
+                {
+                    _knownTypes.Add(knownType);
+                }
+            }
+
+            var t1 = sysActivitiesAssembly.GetType("System.Activities.Variable`1+VariableLocation[[System.Int32, System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]");
+            _knownTypes.Add(t1);
         }
 
 
@@ -49,6 +88,8 @@ namespace JsonFileInstanceStore
         {
             _storeDirectoryPath = storeDirectoryPath;
             Directory.CreateDirectory(storeDirectoryPath);
+
+            initializeKnownTypes(null);
         }
 
         public bool KeepInstanceDataAfterCompletion
@@ -109,6 +150,74 @@ namespace JsonFileInstanceStore
             return TypedCompletedAsyncResult<bool>.End(result);
         }
 
+        private void serialize_json(Dictionary<string, InstanceValue> instanceData, Dictionary<string, InstanceValue> instanceMetadata)
+        {
+            var serializedInstanceData = JsonConvert.SerializeObject(instanceData, Formatting.Indented, _jsonSerializerSettings);
+            File.WriteAllText(_storePathInstanceData, serializedInstanceData);
+
+            var serializedInstanceMetadata = JsonConvert.SerializeObject(instanceMetadata, Formatting.Indented, _jsonSerializerSettings);
+            File.WriteAllText(_storePathInstanceMetadata, serializedInstanceMetadata);
+        }
+
+        private void deserialize_json(out Dictionary<string, InstanceValue> instanceData, out Dictionary<string, InstanceValue> instanceMetadata)
+        {
+            var serializedInstanceData = File.ReadAllText(_storePathInstanceData);
+            instanceData = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceData, _jsonSerializerSettings);
+
+            var serializedInstanceMetadata = File.ReadAllText(_storePathInstanceMetadata);
+            instanceMetadata = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceMetadata, _jsonSerializerSettings);
+        }
+
+        private void serialize_dc(Dictionary<string, InstanceValue> instanceData, Dictionary<string, InstanceValue> instanceMetadata)
+        {
+            System.Runtime.Serialization.DataContractSerializerSettings settings = new System.Runtime.Serialization.DataContractSerializerSettings
+            {
+                PreserveObjectReferences = true,
+                KnownTypes = _knownTypes
+            };
+
+            System.Runtime.Serialization.DataContractSerializer serializer = new System.Runtime.Serialization.DataContractSerializer(instanceData.GetType(), settings);
+
+            string serializedInstanceData = null;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                serializer.WriteObject(ms, instanceData);
+                serializedInstanceData = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+            }
+
+            string serializedInstanceMetadata = null;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                serializer.WriteObject(ms, instanceMetadata);
+                serializedInstanceMetadata = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+            }
+
+            File.WriteAllText(_storePathInstanceData, serializedInstanceData);
+            File.WriteAllText(_storePathInstanceMetadata, serializedInstanceMetadata);
+        }
+
+        private void deserialize_dc(out Dictionary<string, InstanceValue> instanceData, out Dictionary<string, InstanceValue> instanceMetadata)
+        {
+            System.Runtime.Serialization.DataContractSerializerSettings settings = new System.Runtime.Serialization.DataContractSerializerSettings
+            {
+                PreserveObjectReferences = true,
+                KnownTypes = _knownTypes
+            };
+            System.Runtime.Serialization.DataContractSerializer deserializer = new System.Runtime.Serialization.DataContractSerializer(typeof(Dictionary<string, InstanceValue>), settings);
+
+            var serializedInstanceData = File.ReadAllText(_storePathInstanceData);
+            using (MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(serializedInstanceData)))
+            {
+                instanceData = (Dictionary<string, InstanceValue>)deserializer.ReadObject(ms);
+            }
+
+            var serializedInstanceMetadata = File.ReadAllText(_storePathInstanceMetadata);
+            using (MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(serializedInstanceMetadata)))
+            {
+                instanceMetadata = (Dictionary<string, InstanceValue>)deserializer.ReadObject(ms);
+            }
+        }
+
         private bool SaveWorkflow(InstancePersistenceContext context, SaveWorkflowCommand command)
         {
             if (context.InstanceVersion == -1)
@@ -131,16 +240,40 @@ namespace JsonFileInstanceStore
 
                 try
                 {
-                    var serializedInstanceData = JsonConvert.SerializeObject(instanceData, Formatting.Indented, _jsonSerializerSettings);
-                    //File.WriteAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceData", serializedInstanceData);
-                    File.WriteAllText(_storePathInstanceData, serializedInstanceData);
+                    //var serializedInstanceData = JsonConvert.SerializeObject(instanceData, Formatting.Indented, _jsonSerializerSettings);
+                    ////File.WriteAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceData", serializedInstanceData);
+                    //File.WriteAllText(_storePathInstanceData, serializedInstanceData);
+                    //var test_deserializ = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceData, _jsonSerializerSettings);
 
-                    var serializedInstanceMetadata = JsonConvert.SerializeObject(instanceMetadata, Formatting.Indented, _jsonSerializerSettings);
-                    //File.WriteAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceMetadata", serializedInstanceMetadata);
-                    File.WriteAllText(_storePathInstanceMetadata, serializedInstanceMetadata);
+                    //var serializedInstanceMetadata = JsonConvert.SerializeObject(instanceMetadata, Formatting.Indented, _jsonSerializerSettings);
+                    ////File.WriteAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceMetadata", serializedInstanceMetadata);
+                    //File.WriteAllText(_storePathInstanceMetadata, serializedInstanceMetadata);
+                    serialize_dc(instanceData, instanceMetadata);
                 }
-                catch (Exception)
+                catch (Exception exc)
                 {
+                    System.Runtime.Serialization.DataContractSerializerSettings settings = new System.Runtime.Serialization.DataContractSerializerSettings
+                    {
+                        PreserveObjectReferences = true,
+                        KnownTypes = _knownTypes
+                    };
+
+                    string s1 = null;
+                    System.Runtime.Serialization.DataContractSerializer serializer = new System.Runtime.Serialization.DataContractSerializer(instanceData.GetType(), settings);
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        serializer.WriteObject(ms, instanceData);
+                        s1 = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+                    }
+
+                    Dictionary<string, InstanceValue> obj = null;
+                    System.Runtime.Serialization.DataContractSerializer deserializer = new System.Runtime.Serialization.DataContractSerializer(instanceData.GetType(), settings);
+                    using (MemoryStream ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(s1)))
+                    {
+                        obj = (Dictionary<string, InstanceValue>)deserializer.ReadObject(ms);
+                    }
+
+
                     throw;
                 }
 
@@ -184,15 +317,17 @@ namespace JsonFileInstanceStore
 
             try
             {
-                //var serializedInstanceData = File.ReadAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceData");
-                var serializedInstanceData = File.ReadAllText(_storePathInstanceData);
-                serializableInstanceData = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceData, _jsonSerializerSettings);
+                ////var serializedInstanceData = File.ReadAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceData");
+                //var serializedInstanceData = File.ReadAllText(_storePathInstanceData);
+                //serializableInstanceData = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceData, _jsonSerializerSettings);
 
-                //var serializedInstanceMetadata = File.ReadAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceMetadata");
-                var serializedInstanceMetadata = File.ReadAllText(_storePathInstanceMetadata);
-                serializableInstanceMetadata = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceMetadata, _jsonSerializerSettings);
+                ////var serializedInstanceMetadata = File.ReadAllText(_storeDirectoryPath + "\\" + context.InstanceView.InstanceId + "-InstanceMetadata");
+                //var serializedInstanceMetadata = File.ReadAllText(_storePathInstanceMetadata);
+                //serializableInstanceMetadata = JsonConvert.DeserializeObject<Dictionary<string, InstanceValue>>(serializedInstanceMetadata, _jsonSerializerSettings);
+
+                deserialize_dc(out serializableInstanceData, out serializableInstanceMetadata);
             }
-            catch (Exception)
+            catch (Exception exc)
             {
                 throw;
             }

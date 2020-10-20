@@ -64,7 +64,10 @@ namespace wfIntesa.Activities
         {
             var icontext = context.GetExtension<WorkflowInstanceContext>();
             //icontext.Response = bookmarkData;
-            Request.Set(context, (TRequest)icontext.Request);
+
+            if (icontext != null && icontext.Request != null)
+                Request.Set(context, (TRequest)icontext.Request);
+
             //if (bookmarkData != null && bookmarkData.ToString() == this.operationName)
             //{
             //}

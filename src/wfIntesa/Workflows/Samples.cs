@@ -34,6 +34,12 @@ namespace wfIntesa.Workflows
             int a = 0;
         }
 
+        public static void Test(int num, int tot)
+        {
+            Console.WriteLine("Test.....");
+            int a = 0;
+        }
+
         public static string sample_request1()
         {
             Variable<string> receive = new Variable<string>();
@@ -445,10 +451,10 @@ namespace wfIntesa.Workflows
 
             WorkflowDefinition workflowDefinition = new WorkflowDefinition()
             {
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.NewGuid() },
                 Workflow = getWorkflowDefinition(),
-                InstanceCorrelation = Guid.NewGuid(), //id contesto ....
             };
-
+            
             SendReplay1Request request = new SendReplay1Request()
             {
                  Dividend = 500,
@@ -462,75 +468,12 @@ namespace wfIntesa.Workflows
             return sb.ToString();
         }
 
-        public static string sample_pick1()
+        public static string sample_pick1(HttpContext context)
         {
-            Func<Activity> getWorkflowDefinition = delegate ()
-            {
-                Variable<int> v_totale = new Variable<int>();
-                Variable<int> v_ndasommare = new Variable<int>();
-                Variable<bool> v_continue = new Variable<bool>("v_fine", true);
-
-                Sequence workflow = new Sequence()
-                {
-                    Variables = { v_ndasommare, v_totale , v_continue },
-                    Activities = {
-                        new Receive("Start")
-                        {
-
-                        },
-                        new SendReplay<bool>()
-                        {
-                            DisplayName = "SendReplay start",
-                            Response = new InArgument<bool>(true)
-                        },
-                        new While()
-                        {
-                            Condition = v_continue,
-                            Body = new System.Activities.Statements.Pick()
-                            {
-                                Branches = {
-                                    new PickBranch()
-                                    {
-                                        Trigger = new Receive<int>("Somma")
-                                        {
-                                            Request = new OutArgument<int>(v_ndasommare)
-                                        },
-                                        Action = new Assign()
-                                        {
-                                            To = new OutArgument<int>(v_totale),
-                                            Value = new InArgument<int>(e => v_totale.Get(e) + v_ndasommare.Get(e) )
-                                        }
-                                    },
-                                    new PickBranch()
-                                    {
-                                        Trigger = new Receive("Fine")
-                                        {
-                                            
-                                        },
-                                        Action = new Assign<bool>()
-                                        {
-                                            To = new OutArgument<bool>(v_continue),
-                                            Value = new InArgument<bool>(true)
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        new SendReplay<int>()
-                        {
-                            DisplayName = "SendReplay totale",
-                            Response = new InArgument<int>(v_totale)
-                        }
-                    }
-                };
-
-                return workflow;
-            };
-
             WorkflowDefinition workflowDefinition = new WorkflowDefinition()
             {
-                Workflow = getWorkflowDefinition(),
-                InstanceCorrelation = Guid.NewGuid(),
+                Workflow = WorkflowDefinitions.workflow_pick1(),
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.NewGuid() },
             };
 
             var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");
@@ -538,16 +481,64 @@ namespace wfIntesa.Workflows
             if (response)
             {
                 StringBuilder sb = new StringBuilder();
-                sb.Append("<form action='/step'>");
-                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.InstanceCorrelation}' />");
+                sb.Append("<form action='/step' method='post'>");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.WorkflowId}' />");
                 sb.Append("<input type='hidden' name='step' value='step_pick1_somma' />");
                 sb.Append("<input type='text' name='numero'/>");
-                sb.Append("<input type='button' value='submit'/>");
+                sb.Append("<input type='submit' value='submit'/>");
                 sb.Append("</form>");
                 return sb.ToString();
             }
 
-            return "Qualche cosa è andato storto";
+            return "Qualcosa è andato storto";
+        }
+
+        public static string step_pick1_somma(HttpContext context)
+        {
+            WorkflowDefinition workflowDefinition = new WorkflowDefinition()
+            {
+                Workflow = WorkflowDefinitions.workflow_pick1(),
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse(context.Request.Form["correlationid"]) },
+            };
+            int numero = int.Parse(context.Request.Form["numero"]);
+
+            var response = manager.ContinueWorkflow<int, bool>(workflowDefinition, numero, "Somma");
+
+            if (response)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("<form action='/step' method='post'>");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.WorkflowId}' />");
+                sb.Append("<input type='hidden' name='step' value='step_pick1_somma' />");
+                sb.Append("<input type='text' name='numero'/>");
+                sb.Append("<input type='submit' value='Somma'/>");
+                sb.Append("</form></br></br>");
+
+                sb.Append("<form action='/step' method='post'>");
+                sb.Append($"<input type='hidden' name='correlationid' value='{workflowDefinition.Correlation.WorkflowId}' />");
+                sb.Append("<input type='hidden' name='step' value='step_pick1_fine' />");
+                sb.Append("<input type='submit' value='Fine'/>");
+                sb.Append("</form></br></br>");
+
+                return sb.ToString();
+            }
+
+            return "Qualcosa è andato storto";
+        }
+
+        public static string step_pick1_fine(HttpContext context)
+        {
+            WorkflowDefinition workflowDefinition = new WorkflowDefinition()
+            {
+                Workflow = WorkflowDefinitions.workflow_pick1(),
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse(context.Request.Form["correlationid"]) },
+            };
+
+            var response = manager.ContinueWorkflow<RequestBase, int>(workflowDefinition, null, "Fine");
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Totale: {response}</br></br>");
+            return sb.ToString();
         }
     }
 
