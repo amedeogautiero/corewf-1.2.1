@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace System.Activities
 {
@@ -17,10 +19,6 @@ namespace System.Activities
 
             System.Reflection.Assembly sysActivitiesAssembly = typeof(Activity).GetTypeInfo().Assembly;
             Type[] typesArray = sysActivitiesAssembly.GetTypes();
-
-            //Variable<int>.VariableLocation
-
-            //var t1 = typeof(Variable<int>); 
 
             // Remove types that are not decorated with a DataContract attribute
             foreach (Type t in typesArray)
@@ -40,10 +38,29 @@ namespace System.Activities
                 }
             }
 
-            var t1 = sysActivitiesAssembly.GetType("System.Activities.Variable`1+VariableLocation[[System.Int32, System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]");
-            _knownTypes.Add(t1);
+            var conf = WorkflowActivator.GetScope().ServiceProvider.GetService<IConfiguration>();
 
-            _knownTypes.Add(typeof(WorkflowCorrelation));
+            if (conf != null 
+                && conf.GetSection("WorkflowSerialization:KnownTypes") != null
+                && conf.GetSection("WorkflowSerialization:KnownTypes").Exists()
+                && conf.GetSection("WorkflowSerialization:KnownTypes").Get<string[]>() != null)
+            {
+                var knownTypesConf = conf.GetSection("WorkflowSerialization:KnownTypes").Get<string[]>();
+
+                foreach (string knownTypeConf in knownTypesConf)
+                {
+                    var t = sysActivitiesAssembly.GetType(knownTypeConf);
+                    if (t != null)
+                    {
+                        _knownTypes.Add(t);
+                    }
+                }
+            }
+
+            //var t1 = sysActivitiesAssembly.GetType("System.Activities.Variable`1+VariableLocation[[System.Int32, System.Private.CoreLib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]");
+            //_knownTypes.Add(t1);
+
+            //_knownTypes.Add(typeof(WorkflowCorrelation));
         }
 
         private static DataContractSerializerSettings settings = null;

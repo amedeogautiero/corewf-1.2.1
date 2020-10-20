@@ -7,14 +7,14 @@ namespace System.Activities.Runtime.DurableInstancing
 {
     [Fx.Tag.XamlVisible(false)]
     //https://github.com/UiPath/corewf/issues/29
-    [KnownType(typeof(ActivityExecutor))]
-    //[KnownType(typeof(Variable<int>.VariableLocation))]
-    [KnownType(typeof(Variable<string>.VariableLocation))]
-    [KnownType(typeof(System.Activities.ActivityInstance))]
-    [KnownType(typeof(Variable<System.Boolean>.VariableLocation))]
-    [KnownType(typeof(System.Activities.Location<System.String>))]
-    [KnownType(typeof(Variable<System.Activities.Statements.Pick.PickState>.VariableLocation))]
-    [KnownType(typeof(System.Activities.Location<int>.ReferenceLocation))]
+    //[KnownType(typeof(ActivityExecutor))]
+    ////[KnownType(typeof(Variable<int>.VariableLocation))]
+    //[KnownType(typeof(Variable<string>.VariableLocation))]
+    //[KnownType(typeof(System.Activities.ActivityInstance))]
+    //[KnownType(typeof(Variable<System.Boolean>.VariableLocation))]
+    //[KnownType(typeof(System.Activities.Location<System.String>))]
+    //[KnownType(typeof(Variable<System.Activities.Statements.Pick.PickState>.VariableLocation))]
+    //[KnownType(typeof(System.Activities.Location<int>.ReferenceLocation))]
     
 
     [DataContract]
