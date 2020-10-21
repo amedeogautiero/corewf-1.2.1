@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CoreWf\System.Activities.csproj" />
-    <ProjectReference Include="..\Test\JsonFileInstanceStore\JsonFileInstanceStore.csproj" />
     <ProjectReference Include="..\WorkflowManager\WorkflowManager.csproj" />
   </ItemGroup>
 

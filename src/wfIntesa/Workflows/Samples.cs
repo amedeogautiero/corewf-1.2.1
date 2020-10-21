@@ -161,12 +161,12 @@ namespace wfIntesa.Workflows
             System.Activities.Runtime.DurableInstancing.InstanceStore s_fileStore = null;
 
 
-            string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-            string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-            if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-            { 
-                s_fileStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-            }
+            //string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
+            //string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
+            //if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
+            //{ 
+            //    s_fileStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
+            //}
 
             Func<Activity> createWorkflow = delegate ()
             {

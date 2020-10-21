@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Activities.Runtime.DurableInstancing;
 using System.Activities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace wfIntesa.todelete
 {
@@ -13,12 +14,12 @@ namespace wfIntesa.todelete
         private InstanceStore m_InstanceStore = null;
         public WorkflowsManager()
         {
-            string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-            string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-            if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-            {
-                InstanceStore instanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-            }
+            //string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
+            //string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
+            //if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
+            //{
+            //    InstanceStore instanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
+            //}
         }
 
         private InstanceStore InstanceStore
@@ -27,19 +28,20 @@ namespace wfIntesa.todelete
             {
                 if (m_InstanceStore == null)
                 {
-                    string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
-                    string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
-                    if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
-                    {
-                        m_InstanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
-                    }
+                    //string config_WorkflowInstanceStore = wfIntesa.Startup.config["WorkflowInstanceStore:StoreType"];
+                    //string config_WorkflowInstanceParams = wfIntesa.Startup.config["WorkflowInstanceStore:InstanceParamsString"];
+                    //if (!string.IsNullOrEmpty(config_WorkflowInstanceStore))
+                    //{
+                    //    m_InstanceStore = new JsonFileInstanceStore.FileInstanceStore(config_WorkflowInstanceParams);
+                    //}
+                    m_InstanceStore = WorkflowActivator.GetScope().ServiceProvider.GetService<InstanceStore>();
                 }
 
                 return m_InstanceStore;
             }
         }
 
-        public WorkflowInstanceManager StartWorkflow(Activity workflow)
+        private WorkflowInstanceManager StartWorkflow_todelete(Activity workflow)
         {
             WorkflowInstanceManager workflowManager = new WorkflowInstanceManager(workflow);
             workflowManager.instanceStore = InstanceStore;
