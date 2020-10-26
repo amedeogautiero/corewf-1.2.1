@@ -478,8 +478,9 @@ namespace wfIntesa.Workflows
         {
             WorkflowDefinition workflowDefinition = new WorkflowDefinition()
             {
+                //Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse("7777b449-410c-49d9-b29b-b37419d0895a") /*Guid.NewGuid()*/ },
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.NewGuid() },
                 Workflow = WorkflowDefinitions.workflow_pick1(),
-                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse("7777b449-410c-49d9-b29b-b37419d0895a") /*Guid.NewGuid()*/ },
             };
 
             var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");
@@ -586,8 +587,9 @@ namespace wfIntesa.Workflows
 
             WorkflowDefinition workflowDefinition = new WorkflowDefinition()
             {
+                //Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse("7777b449-410c-49d9-b29b-b37419d0895a") /*Guid.NewGuid()*/ },
+                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.NewGuid() },
                 Workflow = Workflow, //WorkflowDefinitions.workflow_dynamic1(),
-                Correlation = new WorkflowCorrelation() { CorrelationId = Guid.Parse("7777b449-410c-49d9-b29b-b37419d0895a") /*Guid.NewGuid()*/ },
             };
 
             var response = manager.StartWorkflow<RequestBase, bool>(workflowDefinition, null, "Start");

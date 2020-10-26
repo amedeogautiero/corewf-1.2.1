@@ -43,6 +43,8 @@ namespace /*System.Activities*/ Microsoft.Extensions.DependencyInjection
         public static void UseWorkflow(this IApplicationBuilder app)
         {
             WorkflowActivator.Configure(app.ApplicationServices);
+
+            WorkflowSerialization.initializeKnownTypes(null);
         }
     }
 }

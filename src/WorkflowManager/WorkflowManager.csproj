@@ -11,8 +11,14 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.9" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!--<ItemGroup>
     <ProjectReference Include="..\CoreWf\System.Activities.csproj" />
+  </ItemGroup>-->
+
+  <ItemGroup>
+    <Reference Include="System.Activities">
+      <HintPath>..\CoreWf\bin\Debug\netstandard2.0\System.Activities.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

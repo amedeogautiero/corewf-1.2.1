@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace wfIntesa.Activities
 {
-    public class SendReplay_todelete<TResponse> : NativeActivity
+    public class SendReplay<TResponse> : NativeActivity
     {
         public InArgument<TResponse> Response { get; set; }
 

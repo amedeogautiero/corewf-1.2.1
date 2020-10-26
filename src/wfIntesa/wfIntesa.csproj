@@ -2,11 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UserSecretsId>62a37d06-3e86-47a2-83ed-7492d658daa7</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CoreWf\System.Activities.csproj" />
+    <!--<ProjectReference Include="..\CoreWf\System.Activities.csproj" />-->
     <ProjectReference Include="..\WorkflowManager\WorkflowManager.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Activities">
+      <HintPath>..\CoreWf\bin\Debug\netstandard2.0\System.Activities.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>

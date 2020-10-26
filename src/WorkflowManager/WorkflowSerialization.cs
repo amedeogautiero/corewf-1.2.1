@@ -12,7 +12,7 @@ namespace System.Activities
     public class WorkflowSerialization
     {
         private static List<Type> _knownTypes = null;
-        private static void initializeKnownTypes(IEnumerable<Type> knownTypesForDataContractSerializer)
+        internal static void initializeKnownTypes(IEnumerable<Type> knownTypesForDataContractSerializer)
         {
             //https://github.com/UiPath/corewf/blob/master/src/Test/TestFileInstanceStore/TestFileInstanceStore.cs
             _knownTypes = new List<Type>();

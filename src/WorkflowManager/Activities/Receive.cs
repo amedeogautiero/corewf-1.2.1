@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace wfIntesa.Activities
 {
-    public class Receive_todelete : NativeActivity
+    public class Receive : NativeActivity
     { 
         protected string operationName = string.Empty;
 
@@ -18,11 +18,11 @@ namespace wfIntesa.Activities
             }
         }
 
-        public Receive_todelete()
+        public Receive()
         {
             this.operationName = "Submit";
         }
-        public Receive_todelete(string operationName)
+        public Receive(string operationName)
         {
             this.operationName = operationName;
         }
