@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Activities;
 using System.Activities.Expressions;
+using System.Activities.Local;
 using System.Activities.Runtime;
 using System.Activities.Statements;
 using System.Collections.Generic;
@@ -8,10 +9,9 @@ using System.Data.SqlTypes;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using wfIntesa.Activities;
-using wfIntesa.Messages;
+using Messages;
 
-namespace wfIntesa.Workflows
+namespace webUiPathTest.Workflows
 {
     public class WorkflowDefinitions
     {

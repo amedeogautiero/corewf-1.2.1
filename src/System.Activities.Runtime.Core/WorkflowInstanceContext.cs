@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace System.Activities
+namespace System.Activities.Runtime.Core
 {
     public class WorkflowInstanceContext
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace System.Activities
+namespace System.Activities.Runtime.Core
 {
     public class WorkflowInstanceManager
     {

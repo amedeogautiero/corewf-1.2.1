@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="UiPath.Workflow" Version="1.0.0-20201014-02" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\System.Activities.Runtime.Core\System.Activities.Runtime.Core.csproj" />
+  </ItemGroup>
+
+</Project>

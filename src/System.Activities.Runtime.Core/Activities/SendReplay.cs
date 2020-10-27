@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Activities;
+using System.Activities.Runtime.Core;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace wfIntesa.Activities
+namespace System.Activities
 {
     public class SendReplay<TResponse> : NativeActivity
     {

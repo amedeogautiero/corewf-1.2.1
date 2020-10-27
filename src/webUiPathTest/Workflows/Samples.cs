@@ -6,27 +6,26 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using wfIntesa.Activities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
-using wfIntesa.Messages;
+using Messages;
+using System.Activities.Local;
+using System.Activities.Runtime.Core;
 
-namespace wfIntesa.Workflows
+namespace webUiPathTest.Workflows
 {
     public class Samples
     {
-        static System.Activities.IWorkflowsManager manager = null;
+        static IWorkflowsManager manager = null;
 
         static Samples()
         {
-            //manager = ServiceActivator.GetScope().ServiceProvider.GetService<System.Activities.IWorkflowsManager>();
-            manager = WorkflowActivator.GetScope().ServiceProvider.GetService<System.Activities.IWorkflowsManager>();
+            manager = WorkflowActivator.GetScope().ServiceProvider.GetService<IWorkflowsManager>();
         }
 
         public static void Test(string str)
         {
             Console.WriteLine("Test.....");
-            int a = 0;
         }
 
         public static void Test(int str)

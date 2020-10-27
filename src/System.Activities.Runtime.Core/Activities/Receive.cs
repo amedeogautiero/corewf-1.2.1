@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Activities;
+using System.Activities.Runtime.Core;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace wfIntesa.Activities
+namespace System.Activities
 {
-    public class Receive_todelete : NativeActivity
+    public class Receive : NativeActivity
     { 
         protected string operationName = string.Empty;
 
@@ -18,11 +19,11 @@ namespace wfIntesa.Activities
             }
         }
 
-        public Receive_todelete()
+        public Receive()
         {
             this.operationName = "Submit";
         }
-        public Receive_todelete(string operationName)
+        public Receive(string operationName)
         {
             this.operationName = operationName;
         }
@@ -42,13 +43,13 @@ namespace wfIntesa.Activities
         }
     }
 
-    public class Receive_todelete<TRequest> : Receive_todelete // NativeActivity
+    public class Receive<TRequest> : Receive // NativeActivity
     {
-        public Receive_todelete():base()
+        public Receive():base()
         {
             
         }
-        public Receive_todelete(string operationName):base(operationName)
+        public Receive(string operationName):base(operationName)
         {
             
         }
